@@ -1,4 +1,4 @@
 (executable
- (public_name example)
+ (public_name warc)
  (name main)
- (libraries example))
+ (libraries warc))
