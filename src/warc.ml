@@ -104,11 +104,11 @@ module Header = struct
     Out_channel.output_string oc k;
     Out_channel.output_string oc ": ";
     Out_channel.output_string oc v;
-    Out_channel.output_char oc '\n'
+    Out_channel.output_string oc "\r\n"
 
   let write oc header =
     Out_channel.output_string oc header.version;
-    Out_channel.output_char oc '\n';
+    Out_channel.output_string oc "\r\n";
     write_key_value oc "WARC-Type" (Warctype.to_string header.warctype);
     write_key_value oc "WARC-Record-ID" header.id;
     write_key_value oc "Content-Length" (Int64.to_string header.content_length);
@@ -124,7 +124,7 @@ module Contents = struct
 
   let read ic header =
     In_channel.really_input_string ic
-      (Int64.to_int header.Header.content_length - 2)
+      (Int64.to_int header.Header.content_length)
 
   let v ic header =
     let offset = In_channel.pos ic in
@@ -157,4 +157,4 @@ let read_all ic =
 let write oc header contents =
   Header.write oc header;
   Out_channel.output_string oc contents;
-  Out_channel.output_string oc "\r\n"
+  Out_channel.output_string oc "\r\n\r\n\r\n"
