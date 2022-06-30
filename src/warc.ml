@@ -120,6 +120,8 @@ module Header = struct
 end
 
 module Contents = struct
+  type t = unit -> string option
+
   let read ic header =
     In_channel.really_input_string ic
       (Int64.to_int header.Header.content_length - 2)
