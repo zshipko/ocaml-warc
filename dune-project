@@ -5,22 +5,21 @@
 (generate_opam_files true)
 
 (source
- (github username/reponame))
+ (github zshipko/ocaml-warc))
 
-(authors "Author Name")
+(authors "Zach Shipko")
 
-(maintainers "Maintainer Name")
+(maintainers "Zach Shipko")
 
 (license ISC)
 
-(documentation https://url/to/documentation)
+(documentation https://github.com/zshipko/ocaml-warc)
 
 (package
  (name warc)
- (synopsis "A short synopsis")
- (description "A longer description")
- (depends ocaml dune)
+ (synopsis "WARC format reader/writer")
+ (description "A library for reading and writing Web ARChive (.warc) files")
+ (depends ocaml dune uuidm ISO8601)
  (tags
-  (topics "to describe" your project)))
+  (warc web-archive)))
 
-; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project

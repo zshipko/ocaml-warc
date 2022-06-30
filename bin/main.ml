@@ -12,6 +12,6 @@ let () =
           let content = content () in
           Option.iter print_endline content;
           print_endline "--- End";
-          Option.iter (Warc.write oc r) content)
+          Option.iter (Warc.write oc r) (Some content))
         f);
   Out_channel.close oc

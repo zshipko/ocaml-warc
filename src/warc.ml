@@ -31,6 +31,19 @@ module Header = struct
       | Revisit -> "revisit"
       | Conversion -> "conversion"
       | Continuation -> "continuation"
+
+    let equal a b =
+      match (a, b) with
+      | Warcinfo, Warcinfo
+      | Response, Response
+      | Resource, Resource
+      | Request, Request
+      | Metadata, Metadata
+      | Revisit, Revisit
+      | Conversion, Conversion
+      | Continuation, Continuation ->
+          true
+      | _ -> false
   end
 
   type t = {
@@ -43,6 +56,18 @@ module Header = struct
     target_uri : string option;
     extras : (string * string) list;
   }
+
+  let equal a b =
+    String.equal a.version b.version
+    && String.equal a.id b.id
+    && Int64.equal a.content_length b.content_length
+    && String.equal a.content_type b.content_type
+    && String.equal a.date b.date
+    && Warctype.equal a.warctype b.warctype
+    && Option.equal String.equal a.target_uri b.target_uri
+    && List.equal
+         (fun (a, b) (x, y) -> String.equal a x && String.equal b y)
+         a.extras b.extras
 
   let split_key_value line =
     try
@@ -71,7 +96,7 @@ module Header = struct
 
   let empty =
     {
-      version = "";
+      version = "WARC/1.0";
       id = "";
       content_length = 0L;
       content_type = "application/octet-stream";
@@ -79,6 +104,30 @@ module Header = struct
       warctype = Warcinfo;
       target_uri = None;
       extras = [];
+    }
+
+  let now () =
+    let now = Unix.gettimeofday () in
+    ISO8601.Permissive.string_of_datetime now
+
+  let uuid () =
+    let id = Uuidm.v `V4 |> Uuidm.to_string in
+    Printf.sprintf "<urn:uuid:%s>" id
+
+  let v ?(version = empty.version) ?id ?(content_length = empty.content_length)
+      ?(content_type = empty.content_type) ?date ?target_uri ?(extras = [])
+      warctype =
+    let id = match id with None -> uuid () | Some id -> id in
+    let date = match date with None -> now () | Some d -> d in
+    {
+      version;
+      id;
+      content_length;
+      content_type;
+      date;
+      warctype;
+      target_uri;
+      extras;
     }
 
   let rec read ic =
@@ -100,23 +149,23 @@ module Header = struct
     | Some "" -> read ic
     | Some version -> Some (inner { empty with version })
 
-  let write_key_value oc k v =
-    Out_channel.output_string oc k;
-    Out_channel.output_string oc ": ";
-    Out_channel.output_string oc v;
-    Out_channel.output_string oc "\r\n"
+  let pp_kv fmt k v = Format.fprintf fmt "%s: %s\r\n" k v
+
+  let pp fmt header =
+    Format.pp_print_string fmt header.version;
+    Format.pp_print_string fmt "\r\n";
+    pp_kv fmt "WARC-Type" (Warctype.to_string header.warctype);
+    pp_kv fmt "WARC-Record-ID" header.id;
+    pp_kv fmt "Content-Length" (Int64.to_string header.content_length);
+    pp_kv fmt "Content-Type" header.content_type;
+    pp_kv fmt "WARC-Date" header.date;
+    Option.iter (pp_kv fmt "WARC-Target-URI") header.target_uri;
+    List.iter (fun (k, v) -> pp_kv fmt k v) header.extras;
+    Format.pp_print_string fmt "\r\n"
 
   let write oc header =
-    Out_channel.output_string oc header.version;
-    Out_channel.output_string oc "\r\n";
-    write_key_value oc "WARC-Type" (Warctype.to_string header.warctype);
-    write_key_value oc "WARC-Record-ID" header.id;
-    write_key_value oc "Content-Length" (Int64.to_string header.content_length);
-    write_key_value oc "Content-Type" header.content_type;
-    write_key_value oc "WARC-Date" header.date;
-    Option.iter (write_key_value oc "WARC-Target-URI") header.target_uri;
-    List.iter (fun (k, v) -> write_key_value oc k v) header.extras;
-    Out_channel.output_string oc "\r\n"
+    let fmt = Format.formatter_of_out_channel oc in
+    Format.fprintf fmt "%a" pp header
 end
 
 module Contents = struct
@@ -156,5 +205,12 @@ let read_all ic =
 
 let write oc header contents =
   Header.write oc header;
-  Out_channel.output_string oc contents;
-  Out_channel.output_string oc "\r\n\r\n\r\n"
+  match contents with
+  | Some contents ->
+      let length = String.length contents |> Int64.of_int in
+      assert (Int64.equal header.Header.content_length length);
+      Out_channel.output_string oc contents;
+      Out_channel.output_string oc "\r\n\r\n\r\n"
+  | None -> ()
+
+let write_all oc items = List.iter (fun (hdr, c) -> write oc hdr c) items

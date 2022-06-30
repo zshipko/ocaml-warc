@@ -1,2 +1,3 @@
 (library
- (name warc))
+ (name warc)
+ (libraries uuidm ISO8601))
