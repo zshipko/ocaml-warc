@@ -1,5 +1,0 @@
-(executable
- (public_name warc)
- (name main)
- (libraries warc)
- (package warc))
