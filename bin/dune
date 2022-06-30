@@ -1,4 +1,5 @@
 (executable
  (public_name warc)
  (name main)
- (libraries warc))
+ (libraries warc)
+ (package warc))
