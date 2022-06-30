@@ -157,6 +157,4 @@ let read_all ic =
 let write oc header contents =
   Header.write oc header;
   Out_channel.output_string oc contents;
-  Out_channel.output_string oc "\r\n";
-  Out_channel.output_string oc "\r\n";
   Out_channel.output_string oc "\r\n"
