@@ -161,7 +161,8 @@ module Header = struct
     pp_kv fmt "WARC-Date" header.date;
     Option.iter (pp_kv fmt "WARC-Target-URI") header.target_uri;
     List.iter (fun (k, v) -> pp_kv fmt k v) header.extras;
-    Format.pp_print_string fmt "\r\n"
+    Format.pp_print_string fmt "\r\n";
+    Format.pp_print_flush fmt ()
 
   let write oc header =
     let fmt = Format.formatter_of_out_channel oc in
@@ -210,7 +211,8 @@ let write oc header contents =
       let length = String.length contents |> Int64.of_int in
       assert (Int64.equal header.Header.content_length length);
       Out_channel.output_string oc contents;
-      Out_channel.output_string oc "\r\n\r\n\r\n"
+      Out_channel.output_string oc "\r\n\r\n\r\n";
+      Out_channel.flush oc
   | None -> ()
 
 let write_all oc items = List.iter (fun (hdr, c) -> write oc hdr c) items
