@@ -69,6 +69,42 @@ module Header = struct
          (fun (a, b) (x, y) -> String.equal a x && String.equal b y)
          a.extras b.extras
 
+  let empty =
+    {
+      version = "";
+      id = "";
+      content_length = 0L;
+      content_type = "application/octet-stream";
+      date = "";
+      warctype = Warcinfo;
+      target_uri = None;
+      extras = [];
+    }
+
+  let now () =
+    let now = Unix.gettimeofday () in
+    ISO8601.Permissive.string_of_datetime now ^ "Z"
+
+  let uuid () =
+    let id = Uuidm.v `V4 |> Uuidm.to_string in
+    Printf.sprintf "<urn:uuid:%s>" id
+
+  let v ?(version = "WARC/1.0") ?id ?(content_length = 0L)
+      ?(content_type = empty.content_type) ?date ?target_uri ?(extras = [])
+      warctype =
+    let id = match id with None -> uuid () | Some id -> id in
+    let date = match date with None -> now () | Some d -> d in
+    {
+      version;
+      id;
+      content_length;
+      content_type;
+      date;
+      warctype;
+      target_uri;
+      extras;
+    }
+
   let split_key_value line =
     try
       let idx = String.index line ':' in
@@ -93,42 +129,6 @@ module Header = struct
     | Some line ->
         let is_empty = String.length line = 0 in
         if is_empty then None else split_key_value line
-
-  let empty =
-    {
-      version = "WARC/1.0";
-      id = "";
-      content_length = 0L;
-      content_type = "application/octet-stream";
-      date = "";
-      warctype = Warcinfo;
-      target_uri = None;
-      extras = [];
-    }
-
-  let now () =
-    let now = Unix.gettimeofday () in
-    ISO8601.Permissive.string_of_datetime now
-
-  let uuid () =
-    let id = Uuidm.v `V4 |> Uuidm.to_string in
-    Printf.sprintf "<urn:uuid:%s>" id
-
-  let v ?(version = empty.version) ?id ?(content_length = empty.content_length)
-      ?(content_type = empty.content_type) ?date ?target_uri ?(extras = [])
-      warctype =
-    let id = match id with None -> uuid () | Some id -> id in
-    let date = match date with None -> now () | Some d -> d in
-    {
-      version;
-      id;
-      content_length;
-      content_type;
-      date;
-      warctype;
-      target_uri;
-      extras;
-    }
 
   let rec read ic =
     let rec inner t =
